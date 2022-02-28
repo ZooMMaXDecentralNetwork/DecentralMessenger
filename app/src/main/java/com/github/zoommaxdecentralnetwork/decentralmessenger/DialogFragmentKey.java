@@ -23,9 +23,6 @@ public class DialogFragmentKey extends DialogFragment {
 
     @NonNull
     public Dialog onCreateDialog(Bundle savedInstanceState){
-
-
-
         TextView textTitle = new TextView(getActivity());
             textTitle.setText(title);
             textTitle.setTextSize(18.0F);

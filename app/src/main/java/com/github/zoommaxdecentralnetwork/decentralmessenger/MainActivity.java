@@ -8,8 +8,10 @@ import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.ListAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
@@ -23,20 +25,22 @@ import java.security.SecureRandom;
 import java.security.spec.ECGenParameterSpec;
 import java.util.Base64;
 
+import ru.zoommax.hul.HexUtils;
+
 public class MainActivity extends AppCompatActivity {
-    protected SQLiteDatabase dmpdb;
+    protected SQLiteDatabase db;
     public static final String APP_PREFERENCES = "mysettings";
     public static final String APP_PREFERENCES_KEYpub = "keyPub";
     public static final String APP_PREFERENCES_KEYpriv = "keyPriv";
+    public static final String APP_PREFERENCES_ip = "ip";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        dmpdb = getBaseContext().openOrCreateDatabase("decmes.db", MODE_PRIVATE, null);
+        db = getBaseContext().openOrCreateDatabase("decmes.db", MODE_PRIVATE, null);
         FloatingActionButton addPerson = (FloatingActionButton) findViewById(R.id.personAdd);
         FloatingActionButton iam = (FloatingActionButton) findViewById(R.id.iam);
-        ListView list = (ListView) findViewById(R.id.list);
-
+        ListView list = (ListView)findViewById(R.id.list);
         SharedPreferences mSettings = getSharedPreferences(APP_PREFERENCES, Context.MODE_PRIVATE);
         if (!mSettings.contains(APP_PREFERENCES_KEYpub)) {
             try {
@@ -46,8 +50,8 @@ public class MainActivity extends AppCompatActivity {
                 KeyPair keypair = g.generateKeyPair();
                 PublicKey publicKey = keypair.getPublic();
                 PrivateKey privateKey = keypair.getPrivate();
-                String pubKey = Base64.getEncoder().encodeToString(publicKey.getEncoded());
-                String privKey = Base64.getEncoder().encodeToString(privateKey.getEncoded());
+                String pubKey = HexUtils.toString(publicKey.getEncoded());
+                String privKey = HexUtils.toString(privateKey.getEncoded());
                 SharedPreferences.Editor editor = mSettings.edit();
                 editor.putString(APP_PREFERENCES_KEYpub, pubKey);
                 editor.putString(APP_PREFERENCES_KEYpriv, privKey);
@@ -56,7 +60,18 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }
-        dmpdb.execSQL("CREATE TABLE IF NOT EXISTS messeges(sender TEXT NOT NULL, receiver TEXT NOT NULL, data TEXT NOT NULL, ts TEXT NOT NULL, hash TEXT NOT NULL)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS messeges(sender TEXT NOT NULL, receiver TEXT NOT NULL, data TEXT NOT NULL, ts TEXT NOT NULL, hash TEXT NOT NULL)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS names(publickey TEXT NOT NULL, name TEXT)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS servers(ip TEXT NOT NULL, alive TEXT NOT NULL)");
+        if (!mSettings.contains(APP_PREFERENCES_ip)){
+            DialogFragmentStart dialogFragmentStart = new DialogFragmentStart(db);
+            dialogFragmentStart.show(getSupportFragmentManager(), "start");
+        }else {
+
+        }
+
+        //ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.contactlist);
+
 
         iam.setOnClickListener(view -> {
             String key = mSettings.getString(APP_PREFERENCES_KEYpub, "error");
