@@ -1,17 +1,13 @@
 package com.github.zoommaxdecentralnetwork.decentralmessenger;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.DialogFragment;
-
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
-import android.view.View;
-import android.widget.ArrayAdapter;
-import android.widget.ListAdapter;
 import android.widget.ListView;
-import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
@@ -23,7 +19,6 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.spec.ECGenParameterSpec;
-import java.util.Base64;
 
 import ru.zoommax.hul.HexUtils;
 
@@ -64,11 +59,17 @@ public class MainActivity extends AppCompatActivity {
         db.execSQL("CREATE TABLE IF NOT EXISTS names(publickey TEXT NOT NULL, name TEXT)");
         db.execSQL("CREATE TABLE IF NOT EXISTS servers(ip TEXT NOT NULL, alive TEXT NOT NULL)");
         if (!mSettings.contains(APP_PREFERENCES_ip)){
-            DialogFragmentStart dialogFragmentStart = new DialogFragmentStart(db);
+            DialogFragmentStart dialogFragmentStart = new DialogFragmentStart(db, mSettings);
             dialogFragmentStart.show(getSupportFragmentManager(), "start");
-        }else {
-
         }
+
+        Cursor cursor = db.rawQuery("SELECT * FROM servers", null);
+        String tmpServers = "";
+        while (cursor.moveToNext()){
+
+            tmpServers += cursor.getString(1)+";";
+        }
+        String[] servers = tmpServers.split(";");
 
         //ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.contactlist);
 

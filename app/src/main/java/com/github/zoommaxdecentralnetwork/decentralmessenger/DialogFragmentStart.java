@@ -2,7 +2,9 @@ package com.github.zoommaxdecentralnetwork.decentralmessenger;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Typeface;
 import android.location.GnssAntennaInfo;
@@ -22,9 +24,12 @@ import org.json.JSONObject;
 
 public class DialogFragmentStart extends DialogFragment implements DialogInterface.OnClickListener {
     protected EditText editText;
+    public static final String APP_PREFERENCES_ip = "ip";
     SQLiteDatabase db;
-    public DialogFragmentStart(SQLiteDatabase db){
+    SharedPreferences mSettings;
+    public DialogFragmentStart(SQLiteDatabase db, SharedPreferences mSttings){
         this.db = db;
+        this.mSettings = mSttings;
     }
     @NonNull
     public Dialog onCreateDialog(Bundle savedInstanceState){
@@ -53,6 +58,9 @@ public class DialogFragmentStart extends DialogFragment implements DialogInterfa
     @Override
     public void onClick(DialogInterface dialogInterface, int i){
         String servers = new WEB().get("http://"+editText.getText()+":3000/api/v1/getservers");
+        SharedPreferences.Editor editor = mSettings.edit();
+        editor.putString(APP_PREFERENCES_ip, editText.getText().toString());
+        editor.apply();
         JSONObject jObj = null;
         try {
             jObj = new JSONObject(servers);
