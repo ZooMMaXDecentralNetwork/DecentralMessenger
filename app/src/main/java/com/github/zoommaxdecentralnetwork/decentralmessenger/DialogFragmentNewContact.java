@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -34,6 +35,7 @@ public class DialogFragmentNewContact extends DialogFragment implements DialogIn
         editText1.setHint("NickName");
 
         LinearLayout layout = new LinearLayout(getActivity());
+        layout.setOrientation(LinearLayout.VERTICAL);
         layout.addView(editText);
         layout.addView(editText1);
 
@@ -46,7 +48,7 @@ public class DialogFragmentNewContact extends DialogFragment implements DialogIn
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         return builder
                 .setCustomTitle(textTitle)
-                .setView(editText)
+                .setView(layout)
                 .setPositiveButton("OK", this::onClick)
                 .create();
     }
@@ -65,7 +67,7 @@ public class DialogFragmentNewContact extends DialogFragment implements DialogIn
         }
 
         if (need){
-            db.execSQL("INSERT INTO names(publickey, name) VALUES('"+key+"','"+nickName+"')");
+            db.execSQL("INSERT INTO names(publickey, name, newmsg) VALUES('"+key+"','"+nickName+"','0')");
         }
     }
 }

@@ -22,13 +22,19 @@ import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.spec.ECGenParameterSpec;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import ru.zoommax.hul.HexUtils;
 
 public class MainActivity extends AppCompatActivity {
     protected SQLiteDatabase db;
+    protected Cursor cursor;
     public static final String APP_PREFERENCES = "mysettings";
     public static final String APP_PREFERENCES_KEYpub = "keyPub";
     public static final String APP_PREFERENCES_KEYpriv = "keyPriv";
@@ -61,28 +67,45 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         db.execSQL("CREATE TABLE IF NOT EXISTS messeges(sender TEXT NOT NULL, receiver TEXT NOT NULL, data TEXT NOT NULL, ts TEXT NOT NULL, hash TEXT NOT NULL)");
-        db.execSQL("CREATE TABLE IF NOT EXISTS names(publickey TEXT NOT NULL, name TEXT)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS names(publickey TEXT NOT NULL, name TEXT NOT NULL, newmsg TEXT NOT NULL)");
         db.execSQL("CREATE TABLE IF NOT EXISTS servers(ip TEXT NOT NULL, alive TEXT NOT NULL)");
         if (!mSettings.contains(APP_PREFERENCES_ip)){
             DialogFragmentStart dialogFragmentStart = new DialogFragmentStart(db, mSettings);
             dialogFragmentStart.show(getSupportFragmentManager(), "start");
         }
-
-        Cursor cursor = db.rawQuery("SELECT * FROM servers", null);
-        String tmpServers = "";
-        List<HashMap<String, String>> t = new ArrayList<>();
-        while (cursor.moveToNext()){
-            HashMap<String, String> tt = new HashMap<>();
-            tmpServers += cursor.getString(0)+";";
-            tt.put("ip", cursor.getString(0));
-            tt.put("alive", cursor.getString(1));
-            t.add(tt);
+        cursor = db.rawQuery("SELECT * FROM servers", null);
+        while (cursor.moveToNext()) {
+            String ip = cursor.getString(0);
+            String alive = new WEB().get("http://" + ip + ":3000/api/v1/pingclient");
+            if (alive != null) {
+                if (alive.equals("alive")) {
+                    db.execSQL("UPDATE servers SET alive = '1' WHERE ip like '" + ip + "'");
+                }
+            } else {
+                db.execSQL("UPDATE servers SET alive = '0' WHERE ip like '" + ip + "'");
+            }
         }
-        String[] servers = tmpServers.split(";");
-
-
-        ArrayAdapter<List<HashMap<String , String>>> adapter = new adapt<>(this, R.layout.contactlist, t);
-        list.setAdapter(adapter);
+        new Timer().schedule(new GetMesseges(db, mSettings.getString(APP_PREFERENCES_KEYpub, "null")), 0, 1000);
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                cursor = db.rawQuery("SELECT * FROM names", null);
+                List<Contacts> t = new ArrayList<Contacts>();
+                while (cursor.moveToNext()){
+                    t.add(new Contacts(cursor.getString(0), cursor.getString(1), cursor.getString(2)));
+                }
+                runOnUiThread(() -> {
+                    t.sort(new Comparator<Contacts>() {
+                        @Override
+                        public int compare(Contacts t0, Contacts t1) {
+                            return t0.newMsg - t1.newMsg;
+                        }
+                    });
+                    ArrayAdapter<Contacts> adapter = new ContactsAdapter(MainActivity.this, R.layout.contactlist, t);
+                    list.setAdapter(adapter);
+                });
+            }
+        }, 0, 1000);
         //adapter.notifyDataSetChanged();
 
 
@@ -93,16 +116,9 @@ public class MainActivity extends AppCompatActivity {
         });
 
         addPerson.setOnClickListener(view -> {
-
+            DialogFragmentNewContact dialogFragmentNewContact = new DialogFragmentNewContact(db);
+            dialogFragmentNewContact.show(getSupportFragmentManager(), "ncont");
         });
 
-    }
-}
-
-class adapt extends ArrayAdapter<List<HashMap<String, String>>> {
-
-
-    public adapt(@NonNull Context context, int resource) {
-        super(context, resource);
     }
 }
