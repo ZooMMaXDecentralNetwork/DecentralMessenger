@@ -5,8 +5,10 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -19,6 +21,9 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.spec.ECGenParameterSpec;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 import ru.zoommax.hul.HexUtils;
 
@@ -65,13 +70,20 @@ public class MainActivity extends AppCompatActivity {
 
         Cursor cursor = db.rawQuery("SELECT * FROM servers", null);
         String tmpServers = "";
+        List<HashMap<String, String>> t = new ArrayList<>();
         while (cursor.moveToNext()){
-
-            tmpServers += cursor.getString(1)+";";
+            HashMap<String, String> tt = new HashMap<>();
+            tmpServers += cursor.getString(0)+";";
+            tt.put("ip", cursor.getString(0));
+            tt.put("alive", cursor.getString(1));
+            t.add(tt);
         }
         String[] servers = tmpServers.split(";");
 
-        //ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.contactlist);
+
+        ArrayAdapter<List<HashMap<String , String>>> adapter = new adapt<>(this, R.layout.contactlist, t);
+        list.setAdapter(adapter);
+        //adapter.notifyDataSetChanged();
 
 
         iam.setOnClickListener(view -> {
@@ -84,5 +96,13 @@ public class MainActivity extends AppCompatActivity {
 
         });
 
+    }
+}
+
+class adapt extends ArrayAdapter<List<HashMap<String, String>>> {
+
+
+    public adapt(@NonNull Context context, int resource) {
+        super(context, resource);
     }
 }

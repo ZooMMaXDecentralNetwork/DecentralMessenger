@@ -65,7 +65,7 @@ public class DialogFragmentNewContact extends DialogFragment implements DialogIn
         }
 
         if (need){
-            db.execSQL("INSERT INTO names(publickey, name) VALUES('"+key +"'+ nickName)+");
+            db.execSQL("INSERT INTO names(publickey, name) VALUES('"+key+"','"+nickName+"')");
         }
     }
 }
