@@ -19,16 +19,28 @@ import androidx.fragment.app.DialogFragment;
 public class DialogFragmentNewContact extends DialogFragment implements DialogInterface.OnClickListener {
 
     SQLiteDatabase db;
+    String pubKey;
+    boolean update;
     EditText editText, editText1;
 
-    public DialogFragmentNewContact(SQLiteDatabase db){
+    public DialogFragmentNewContact(SQLiteDatabase db, boolean update){
         this.db = db;
+        this.update = update;
+    }
+
+    public DialogFragmentNewContact(SQLiteDatabase db, boolean update, String pubKey){
+        this.db = db;
+        this.pubKey = pubKey;
+        this.update = update;
     }
     @NonNull
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         editText = new EditText(getActivity());
         editText.setGravity(Gravity.LEFT);
         editText.setHint("Key");
+        if (pubKey != null){
+            editText.setText(pubKey);
+        }
 
         editText1 = new EditText(getActivity());
         editText1.setGravity(Gravity.LEFT);
@@ -36,11 +48,17 @@ public class DialogFragmentNewContact extends DialogFragment implements DialogIn
 
         LinearLayout layout = new LinearLayout(getActivity());
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.addView(editText);
+        if (!update) {
+            layout.addView(editText);
+        }
         layout.addView(editText1);
 
         TextView textTitle = new TextView(getActivity());
-        textTitle.setText("New contact. Type key, nickname and press OK");
+        if (update){
+            textTitle.setText("Update contact. Type nickname and press OK");
+        }else {
+            textTitle.setText("New contact. Type key, nickname and press OK");
+        }
         textTitle.setTextSize(18.0F);
         textTitle.setTypeface(null, Typeface.BOLD);
         textTitle.setGravity(Gravity.CENTER);
@@ -60,14 +78,17 @@ public class DialogFragmentNewContact extends DialogFragment implements DialogIn
         Cursor cursor = db.rawQuery("SELECT * FROM names WHERE publickey LIKE '"+key+"'", null);
         boolean need = true;
         while (cursor.moveToNext()){
-            if (cursor.getString(1).equals(key)){
+            if (cursor.getString(0).equals(key)){
                 need = false;
-                break;
             }
+            System.out.println(need);
         }
 
         if (need){
             db.execSQL("INSERT INTO names(publickey, name, newmsg) VALUES('"+key+"','"+nickName+"','0')");
+        }
+        if (!need){
+            db.execSQL("Update names SET name = '"+nickName+"' WHERE publickey like '"+key+"'");
         }
     }
 }

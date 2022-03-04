@@ -22,7 +22,6 @@ public class WEB {
         Callable<String> callable = () -> {
             try {
                 URL url = new URL(urls);
-                System.out.println(urls);
                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
                 if (con.getResponseCode() == HttpURLConnection.HTTP_OK) {
                     //Если запрос выполнен удачно, читаем полученные данные и далее, делаем что-то

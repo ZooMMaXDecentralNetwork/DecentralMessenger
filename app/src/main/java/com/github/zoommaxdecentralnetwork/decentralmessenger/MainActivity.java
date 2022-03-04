@@ -5,8 +5,11 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -106,8 +109,17 @@ public class MainActivity extends AppCompatActivity {
                 });
             }
         }, 0, 1000);
-        //adapter.notifyDataSetChanged();
+        list.setOnItemClickListener((adapterView, view, i, l) -> {
 
+        });
+
+        list.setOnItemLongClickListener((adapterView, view, i, l) -> {
+            TextView txt = (TextView) view.findViewById(R.id.key);
+            String key = txt.getText().toString();
+            DialogFragmentNewContact dialogFragmentNewContact = new DialogFragmentNewContact(db, true, key);
+            dialogFragmentNewContact.show(getSupportFragmentManager(), "ncontlst");
+            return false;
+        });
 
         iam.setOnClickListener(view -> {
             String key = mSettings.getString(APP_PREFERENCES_KEYpub, "error");
@@ -116,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         addPerson.setOnClickListener(view -> {
-            DialogFragmentNewContact dialogFragmentNewContact = new DialogFragmentNewContact(db);
+            DialogFragmentNewContact dialogFragmentNewContact = new DialogFragmentNewContact(db, false);
             dialogFragmentNewContact.show(getSupportFragmentManager(), "ncont");
         });
 
