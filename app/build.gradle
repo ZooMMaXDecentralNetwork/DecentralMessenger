@@ -28,6 +28,9 @@ android {
 }
 
 dependencies {
+    // https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk15on
+    implementation group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.67'
+
 
     // https://mvnrepository.com/artifact/org.json/json
     implementation group: 'ru.zoommax.hul', name: 'HexUtilsLib', version: '1.0-SNAPSHOT'

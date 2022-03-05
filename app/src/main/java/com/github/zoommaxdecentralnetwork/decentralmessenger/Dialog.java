@@ -22,6 +22,8 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.nio.charset.StandardCharsets;
+import java.sql.SQLRecoverableException;
 import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -29,6 +31,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import ru.zoommax.hul.HexUtils;
 
 public class Dialog extends AppCompatActivity {
     SQLiteDatabase db;
@@ -59,18 +63,14 @@ public class Dialog extends AppCompatActivity {
             public void run() {
                 db.execSQL("UPDATE names SET newmsg = '0' WHERE publickey LIKE '"+key+"'");
                 t.clear();
-                int lastPos = listView.getLastVisiblePosition();
                 Cursor cursor = db.rawQuery("SELECT * FROM messeges WHERE sender like '"+key+"' OR receiver like '"+key+"'", null);
                 while (cursor.moveToNext()){
                     String sender = cursor.getString(0);
                     String receiver = cursor.getString(1);
-                    String data = cursor.getString(2);
+                    String[] data = cursor.getString(2).split(";");
                     String ts = cursor.getString(3);
                     if (sender.equals(key)) {
-                        t.add(new DialogGS(name, data, ts));
-                    }
-                    if (receiver.equals(key)){
-                        t.add(new DialogGS("Me", data, ts));
+                        t.add(new DialogGS(name, data, ts, key));
                     }
                 }
                 runOnUiThread(() -> {
@@ -89,17 +89,11 @@ public class Dialog extends AppCompatActivity {
                             return 0;
                         }
                     });
-                    int index = listView.getFirstVisiblePosition();
-                    View v = listView.getChildAt(0);
-                    int top = (v == null) ? 0 : v.getTop();
                     if (tsize != t.size()) {
                         adapter.notifyDataSetChanged();
                         listView.smoothScrollToPosition(listView.getLastVisiblePosition()+(t.size()-tsize));
                     }
                     tsize = t.size();
-                    /*if (lastPos != tsize) {
-                        listView.setSelectionFromTop(index, top);
-                    }*/
                 });
             }
         }, 0, 1000);
@@ -108,11 +102,16 @@ public class Dialog extends AppCompatActivity {
             String text = editText.getText().toString();
             if (!text.equals("")) {
                 editText.setText("");
+                db.execSQL("INSERT INTO messeges(sender, receiver, data, ts, hash) VALUES('"+mSettings.getString(APP_PREFERENCES_KEYpub, "")+"'," +
+                        "'"+key+"'," +
+                        "'"+text+"'," +
+                        "'"+System.currentTimeMillis()+"'," +
+                        "'local')");
                 JSONObject out = new JSONObject();
                 try {
                     out.put("sender", mSettings.getString(APP_PREFERENCES_KEYpub, ""));
                     out.put("receiver", key);
-                    out.put("data", text);
+                    out.put("data", new Crypto().encodeData(text.getBytes(StandardCharsets.UTF_8), key));
                     out.put("peertopeer", "0");
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -139,13 +138,15 @@ public class Dialog extends AppCompatActivity {
 class DialogGS{
 
     String name;
-    String text;
+    String[] text;
     String ts;
+    String key;
 
-    public DialogGS(String name, String text, String ts){
+    public DialogGS(String name, String[] text, String ts, String key){
         this.text = text;
         this.name = name;
         this.ts = ts;
+        this.key = key;
     }
 }
 
@@ -162,10 +163,13 @@ class DialogAdapter extends ArrayAdapter<DialogGS>{
             convertView = LayoutInflater.from(getContext())
                     .inflate(R.layout.dialog_listview, null);
         }
+
+        String text = new BlockCrypt().decrypt()HexUtils.fromString(dialogGS.text[0]), dialogGS.key, dialogGS.text[1]);
+
         ((TextView) convertView.findViewById(R.id.user))
                 .setText(dialogGS.name);
         ((TextView) convertView.findViewById(R.id.text))
-                .setText(dialogGS.text);
+                .setText(text);
         return convertView;
     }
 }
