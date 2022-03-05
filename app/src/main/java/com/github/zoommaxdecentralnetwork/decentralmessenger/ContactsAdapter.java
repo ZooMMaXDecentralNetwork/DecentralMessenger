@@ -31,6 +31,8 @@ public class ContactsAdapter extends ArrayAdapter<Contacts> {
                 .setText(contacts.key);
         if (contacts.newMsg == 1){
             convertView.setBackgroundColor(Color.GREEN);
+        }else if(contacts.newMsg == 0){
+            convertView.setBackgroundColor(Color.WHITE);
         }
         return convertView;
     }

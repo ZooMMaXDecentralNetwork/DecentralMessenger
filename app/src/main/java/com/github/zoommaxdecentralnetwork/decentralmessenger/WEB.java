@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -59,9 +60,8 @@ public class WEB {
                 connection.setUseCaches(false);
                 connection.setDoOutput(true);
 
-                DataOutputStream wr = new DataOutputStream (
-                        connection.getOutputStream());
-                wr.writeBytes(payload);
+                DataOutputStream wr = new DataOutputStream (connection.getOutputStream());
+                wr.write(payload.getBytes(StandardCharsets.UTF_8));
                 wr.close();
                 if (connection.getResponseCode() == HttpURLConnection.HTTP_OK){
                     String res = new BufferedReader(new InputStreamReader(connection.getInputStream())).readLine();

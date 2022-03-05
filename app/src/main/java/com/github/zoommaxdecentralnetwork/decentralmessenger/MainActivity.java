@@ -1,6 +1,7 @@
 package com.github.zoommaxdecentralnetwork.decentralmessenger;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -89,11 +90,14 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         new Timer().schedule(new GetMesseges(db, mSettings.getString(APP_PREFERENCES_KEYpub, "null")), 0, 1000);
+        List<Contacts> t = new ArrayList<Contacts>();
+        ArrayAdapter<Contacts> adapter = new ContactsAdapter(MainActivity.this, R.layout.contactlist, t);
+        list.setAdapter(adapter);
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
                 cursor = db.rawQuery("SELECT * FROM names", null);
-                List<Contacts> t = new ArrayList<Contacts>();
+                t.clear();
                 while (cursor.moveToNext()){
                     t.add(new Contacts(cursor.getString(0), cursor.getString(1), cursor.getString(2)));
                 }
@@ -104,13 +108,24 @@ public class MainActivity extends AppCompatActivity {
                             return t0.newMsg - t1.newMsg;
                         }
                     });
-                    ArrayAdapter<Contacts> adapter = new ContactsAdapter(MainActivity.this, R.layout.contactlist, t);
-                    list.setAdapter(adapter);
+                    int index = list.getFirstVisiblePosition();
+                    View v = list.getChildAt(0);
+                    int top = (v == null) ? 0 : v.getTop();
+                    adapter.notifyDataSetChanged();
+                    list.setSelectionFromTop(index, top);
                 });
             }
         }, 0, 1000);
-        list.setOnItemClickListener((adapterView, view, i, l) -> {
 
+        list.setOnItemClickListener((adapterView, view, i, l) -> {
+            TextView txtKey = (TextView) view.findViewById(R.id.key);
+            String key = txtKey.getText().toString();
+            TextView txtName = (TextView) view.findViewById(R.id.name);
+            String name = txtName.getText().toString();
+            Intent intent = new Intent(MainActivity.this, Dialog.class);
+            intent.putExtra("name", name);
+            intent.putExtra("key", key);
+            startActivity(intent);
         });
 
         list.setOnItemLongClickListener((adapterView, view, i, l) -> {
