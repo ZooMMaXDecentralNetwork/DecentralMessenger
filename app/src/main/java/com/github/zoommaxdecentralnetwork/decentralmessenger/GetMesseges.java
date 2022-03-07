@@ -1,7 +1,13 @@
 package com.github.zoommaxdecentralnetwork.decentralmessenger;
 
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -16,9 +22,15 @@ import java.util.concurrent.Executors;
 public class GetMesseges extends TimerTask {
     SQLiteDatabase db;
     String myKey;
-    public GetMesseges(SQLiteDatabase db, String myKey){
+    String CHANNEL_ID;
+    int NOTIFY_ID;
+    Context context;
+    public GetMesseges(SQLiteDatabase db, String myKey, String CHANNEL_ID, int NOTIFY_ID, Context context){
         this.db = db;
         this.myKey = myKey;
+        this.CHANNEL_ID = CHANNEL_ID;
+        this.NOTIFY_ID = NOTIFY_ID;
+        this.context = context;
     }
     @Override
     public void run() {
@@ -50,6 +62,17 @@ public class GetMesseges extends TimerTask {
                                 }
                                 if (needSaveMsg){
                                     db.execSQL("INSERT INTO messeges(sender, receiver, data, ts, hash) VALUES('"+sender+"','"+receiver+"','"+data+"','"+ts+"','"+hash+"')");
+
+                                    NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
+                                            .setSmallIcon(R.drawable.ic_baseline_message_24)
+                                            .setContentTitle("Decentral Messenger")
+                                            .setContentText("New message")
+                                            .setDefaults(Notification.DEFAULT_ALL)
+                                            .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+
+
+                                    NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+                                    notificationManager.notify(NOTIFY_ID, builder.build());
                                 }
 
                                 cur = db.rawQuery("SELECT * FROM names WHERE publickey like '"+sender+"'", null);

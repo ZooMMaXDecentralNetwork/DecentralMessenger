@@ -68,7 +68,6 @@ public class DialogFragmentStart extends DialogFragment implements DialogInterfa
                 JSONArray jArr = jObj.getJSONArray("servers");
                 for (int x = 0; x < jArr.length(); x++) {
                     db.execSQL("INSERT INTO servers(ip, alive) VALUES('" + jArr.getString(x) + "', '1')");
-                    Toast.makeText(getActivity(), "new server "+jArr.getString(x)+" added to database", Toast.LENGTH_SHORT).show();
                 }
             }
         } catch (JSONException e) {

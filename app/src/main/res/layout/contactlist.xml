@@ -19,7 +19,7 @@
             android:layout_below="@id/name"
             android:gravity="left"
             android:id="@+id/key"
-            android:textSize="15dp"/>
+            android:textSize="8dp"/>
 
     </RelativeLayout>
 

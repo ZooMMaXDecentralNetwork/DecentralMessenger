@@ -1,10 +1,13 @@
 package com.github.zoommaxdecentralnetwork.decentralmessenger;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -14,8 +17,12 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyPair;
@@ -24,6 +31,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.security.Security;
 import java.security.spec.ECGenParameterSpec;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,43 +39,61 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import ru.zoommax.hul.HexUtils;
 
 public class MainActivity extends AppCompatActivity {
+    private static final int NOTIFY_ID = new Random().nextInt();
+    private static String CHANNEL_ID = "DMch";
     protected SQLiteDatabase db;
     protected Cursor cursor;
     public static final String APP_PREFERENCES = "mysettings";
     public static final String APP_PREFERENCES_KEYpub = "keyPub";
     public static final String APP_PREFERENCES_KEYpriv = "keyPriv";
     public static final String APP_PREFERENCES_ip = "ip";
+
+    static {
+        Security.removeProvider("BC");
+        // Confirm that positioning this provider at the end works for your needs!
+        Security.addProvider(new BouncyCastleProvider());
+    }
+
+    private void createNotificationChannel() {
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is new and not in the support library
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, CHANNEL_ID, importance);
+            channel.setDescription("desc");
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        createNotificationChannel();
         db = getBaseContext().openOrCreateDatabase("decmes.db", MODE_PRIVATE, null);
         FloatingActionButton addPerson = (FloatingActionButton) findViewById(R.id.personAdd);
         FloatingActionButton iam = (FloatingActionButton) findViewById(R.id.iam);
         ListView list = (ListView)findViewById(R.id.list);
         SharedPreferences mSettings = getSharedPreferences(APP_PREFERENCES, Context.MODE_PRIVATE);
         if (!mSettings.contains(APP_PREFERENCES_KEYpub)) {
-            try {
-                ECGenParameterSpec ecSpec = new ECGenParameterSpec("secp256r1");
-                KeyPairGenerator g = KeyPairGenerator.getInstance("EC");
-                g.initialize(ecSpec, new SecureRandom());
-                KeyPair keypair = g.generateKeyPair();
-                PublicKey publicKey = keypair.getPublic();
-                PrivateKey privateKey = keypair.getPrivate();
-                String pubKey = HexUtils.toString(publicKey.getEncoded());
-                String privKey = HexUtils.toString(privateKey.getEncoded());
+            HashMap<String, String> keys = new Crypto().getKeys();
+            if (keys.containsKey("error")){
+
+            }else {
                 SharedPreferences.Editor editor = mSettings.edit();
-                editor.putString(APP_PREFERENCES_KEYpub, pubKey);
-                editor.putString(APP_PREFERENCES_KEYpriv, privKey);
+                editor.putString(APP_PREFERENCES_KEYpub, keys.get("pubkey"));
+                editor.putString(APP_PREFERENCES_KEYpriv, keys.get("privkey"));
                 editor.apply();
-            } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
-                e.printStackTrace();
             }
         }
         db.execSQL("CREATE TABLE IF NOT EXISTS messeges(sender TEXT NOT NULL, receiver TEXT NOT NULL, data TEXT NOT NULL, ts TEXT NOT NULL, hash TEXT NOT NULL)");
@@ -89,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
                 db.execSQL("UPDATE servers SET alive = '0' WHERE ip like '" + ip + "'");
             }
         }
-        new Timer().schedule(new GetMesseges(db, mSettings.getString(APP_PREFERENCES_KEYpub, "null")), 0, 1000);
+        new Timer().schedule(new GetMesseges(db, mSettings.getString(APP_PREFERENCES_KEYpub, "null"), CHANNEL_ID, NOTIFY_ID, MainActivity.this), 0, 1000);
         List<Contacts> t = new ArrayList<Contacts>();
         ArrayAdapter<Contacts> adapter = new ContactsAdapter(MainActivity.this, R.layout.contactlist, t);
         list.setAdapter(adapter);

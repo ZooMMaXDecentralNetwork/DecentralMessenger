@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -67,10 +69,13 @@ public class Dialog extends AppCompatActivity {
                 while (cursor.moveToNext()){
                     String sender = cursor.getString(0);
                     String receiver = cursor.getString(1);
-                    String[] data = cursor.getString(2).split(";");
+                    String data = cursor.getString(2);
                     String ts = cursor.getString(3);
                     if (sender.equals(key)) {
-                        t.add(new DialogGS(name, data, ts, key));
+                        t.add(new DialogGS(name, data, ts, myPrivKey));
+                    }
+                    if (receiver.equals(key)){
+                        t.add(new DialogGS("Me", data, ts, myPrivKey));
                     }
                 }
                 runOnUiThread(() -> {
@@ -99,19 +104,26 @@ public class Dialog extends AppCompatActivity {
         }, 0, 1000);
 
         send.setOnClickListener(view -> {
-            String text = editText.getText().toString();
+            String text = null;
+            try {
+                text = new JSONObject().put("text", editText.getText().toString()).toString();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
             if (!text.equals("")) {
                 editText.setText("");
-                db.execSQL("INSERT INTO messeges(sender, receiver, data, ts, hash) VALUES('"+mSettings.getString(APP_PREFERENCES_KEYpub, "")+"'," +
+
+                db.execSQL("INSERT INTO messeges(sender, receiver, data, ts, hash) VALUES('" +
+                        ""+mSettings.getString(APP_PREFERENCES_KEYpub, "")+"'," +
                         "'"+key+"'," +
-                        "'"+text+"'," +
+                        "'"+HexUtils.toString(Objects.requireNonNull(Crypto.encryptData(Crypto.publicKey(myPubKey), text.getBytes(StandardCharsets.UTF_8))))+"'," +
                         "'"+System.currentTimeMillis()+"'," +
                         "'local')");
                 JSONObject out = new JSONObject();
                 try {
-                    out.put("sender", mSettings.getString(APP_PREFERENCES_KEYpub, ""));
+                    out.put("sender", myPubKey);
                     out.put("receiver", key);
-                    out.put("data", new Crypto().encodeData(text.getBytes(StandardCharsets.UTF_8), key));
+                    out.put("data", HexUtils.toString(Objects.requireNonNull(Crypto.encryptData(Crypto.publicKey(key), text.getBytes(StandardCharsets.UTF_8)))));
                     out.put("peertopeer", "0");
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -138,11 +150,11 @@ public class Dialog extends AppCompatActivity {
 class DialogGS{
 
     String name;
-    String[] text;
+    String text;
     String ts;
     String key;
 
-    public DialogGS(String name, String[] text, String ts, String key){
+    public DialogGS(String name, String text, String ts, String key){
         this.text = text;
         this.name = name;
         this.ts = ts;
@@ -164,12 +176,29 @@ class DialogAdapter extends ArrayAdapter<DialogGS>{
                     .inflate(R.layout.dialog_listview, null);
         }
 
-        String text = new BlockCrypt().decrypt()HexUtils.fromString(dialogGS.text[0]), dialogGS.key, dialogGS.text[1]);
+        if (dialogGS.name.equals("Me")){
+            ((TextView) convertView.findViewById(R.id.user))
+                    .setGravity(Gravity.RIGHT);
+            ((TextView) convertView.findViewById(R.id.text))
+                    .setGravity(Gravity.RIGHT);
+        }else {
+            ((TextView) convertView.findViewById(R.id.user))
+                    .setGravity(Gravity.LEFT);
+            ((TextView) convertView.findViewById(R.id.text))
+                    .setGravity(Gravity.LEFT);
+        }
 
-        ((TextView) convertView.findViewById(R.id.user))
+        String text = new String(Objects.requireNonNull(Crypto.decryptData(Crypto.privateKey(dialogGS.key), HexUtils.fromString(dialogGS.text))), StandardCharsets.UTF_8);
+        try {
+            JSONObject jsonObject = new JSONObject(text);
+
+            ((TextView) convertView.findViewById(R.id.user))
                 .setText(dialogGS.name);
-        ((TextView) convertView.findViewById(R.id.text))
-                .setText(text);
+            ((TextView) convertView.findViewById(R.id.text))
+                    .setText(jsonObject.getString("text"));
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
         return convertView;
     }
 }
