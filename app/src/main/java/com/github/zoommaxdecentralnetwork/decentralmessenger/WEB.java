@@ -24,7 +24,7 @@ public class WEB {
             try {
                 URL url = new URL(urls);
                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
-                con.setConnectTimeout(5000)
+                con.setConnectTimeout(5000);
                 if (con.getResponseCode() == HttpURLConnection.HTTP_OK) {
                     //Если запрос выполнен удачно, читаем полученные данные и далее, делаем что-то
                     String res = new BufferedReader(new InputStreamReader(con.getInputStream())).readLine();
@@ -60,6 +60,7 @@ public class WEB {
                 connection.setRequestProperty("Content-Length", Integer.toString(payload.getBytes().length));
                 connection.setUseCaches(false);
                 connection.setDoOutput(true);
+                connection.setConnectTimeout(5000);
 
                 DataOutputStream wr = new DataOutputStream (connection.getOutputStream());
                 wr.write(payload.getBytes(StandardCharsets.UTF_8));
