@@ -24,6 +24,7 @@ public class WEB {
             try {
                 URL url = new URL(urls);
                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
+                con.setConnectTimeout(5000)
                 if (con.getResponseCode() == HttpURLConnection.HTTP_OK) {
                     //Если запрос выполнен удачно, читаем полученные данные и далее, делаем что-то
                     String res = new BufferedReader(new InputStreamReader(con.getInputStream())).readLine();
